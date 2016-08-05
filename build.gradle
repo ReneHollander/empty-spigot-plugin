@@ -5,18 +5,17 @@ buildscript {
     repositories {
         jcenter()
     }
-
     dependencies {
-        classpath group: 'eu.appsatori', name: 'gradle-fatjar-plugin', version: '0.3'
         classpath group: 'com.github.rodionmoiseev.gradle.plugins', name: 'idea-utils', version: '0.2'
-        classpath group: 'de.undercouch', name: 'gradle-download-task', version: '1.2'
     }
 }
 
-apply plugin: 'java'
-apply plugin: 'eu.appsatori.fatjar'
-apply plugin: 'de.undercouch.download'
+plugins {
+    id "com.github.johnrengelman.shadow" version "1.2.3"
+    id "de.undercouch.download" version "3.1.1"
+}
 
+apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'idea-utils'
@@ -26,7 +25,7 @@ idea {
         ipr {
             withXml { xmlProvider ->
                 def project = xmlProvider.asNode()
-                def runConfigs = new XmlParser().parse(new File("config/intellij_runconfigs.txt"))
+                def runConfigs = new XmlParser().parse(new File("config/intellij_runconfigs.xml"))
                 project.append(runConfigs)
             }
         }
@@ -43,27 +42,19 @@ version = project.property("version")
 sourceCompatibility = project.property("sourceversion")
 
 dependencies {
-  if (project.property("apitype") == "SPIGOT") {
-    compile group: 'org.spigotmc', name: 'spigot-api', version: project.property("apiversion"), { ext { fatJarExclude = true } }
-    compile group: 'org.spigotmc', name: 'spigot', version: project.property("apiversion"), { ext { fatJarExclude = true } }
-  } else if (project.property("apitype") == "BUKKIT") {
-    compile group: 'org.spigotmc', name: 'bukkit', version: project.property("apiversion"), { ext { fatJarExclude = true } }
-    compile group: 'org.bukkit', name: 'craftbukkit', version: project.property("apiversion"), { ext { fatJarExclude = true } }
-  }
-  // dependencies go here
-  // Example:
-  // compile group: 'com.google.guava', name: 'guava', version: '18.0'
+    compile group: 'org.spigotmc', name: 'spigot-api', version: project.property("apiversion")
+    compile group: 'org.spigotmc', name: 'spigot', version: project.property("apiversion")
+
+    // dependencies go here
+    // Example:
+    // compile group: 'com.google.guava', name: 'guava', version: '19.0'
 }
 
 processResources {
     filter ReplaceTokens, tokens: [
             "apiversion": project.property("apiversion"),
-            "apitype"      : project.property("apitype"),
-            "version"      : project.property("version")
+            "version"   : project.property("version")
     ]
-}
-
-task setupWorkspace(dependsOn: ['buildSpigot']) {
 }
 
 clean {
@@ -71,18 +62,40 @@ clean {
     delete "testserver/"
 }
 
+compileJava.dependsOn {
+    buildSpigot
+}
+
+jar {
+    actions = []
+    dependsOn = []
+    dependsOn('shadowJar')
+}
+
+shadowJar {
+    dependencies {
+        exclude(dependency('org.spigotmc:spigot-api:.*'))
+        exclude(dependency('org.spigotmc:spigot:.*'))
+    }
+}
+
 task deploy(type: Copy, dependsOn: ['build']) {
     from "${buildDir}/libs"
     into "final/"
 }
 
-task setupDevServer(type: Copy) {
+task setupDevServer(dependsOn: 'extractServerJar', type: Copy) {
     from 'config/serverfiles'
     into 'testserver'
 }
 
-task cleanPlugins() {
-    delete "testserver/plugins"
+task extractServerJar(type: Copy) {
+    from {
+        configurations.runtime
+    }
+    include("spigot-" + project.property("apiversion") + ".jar")
+    rename("spigot-" + project.property("apiversion") + ".jar", "server.jar")
+    into "testserver/"
 }
 
 task copyPluginToTestserver(dependsOn: ['build'], type: Copy) {
@@ -90,29 +103,28 @@ task copyPluginToTestserver(dependsOn: ['build'], type: Copy) {
     into "testserver/plugins"
 }
 
-task startDevServer(dependsOn: ['cleanPlugins', 'copyPluginToTestserver', 'setupDevServer'], type: JavaExec) {
-    classpath configurations.compile
+task prepareDevServer(dependsOn: ['buildSpigot', 'setupDevServer', 'copyPluginToTestserver']) {}
+
+task startDevServer(dependsOn: [prepareDevServer], type: JavaExec) {
+    classpath configurations.compile, configurations.runtime
     main = "org.bukkit.craftbukkit.Main"
     workingDir = "testserver/"
     standardInput = System.in
-}
-
-jar {
-    actions = []
-    dependsOn = []
-    dependsOn('fatJar')
 }
 
 // START Building Spigot and Bukkit
 
 def spigotBuildDir = new File("$buildDir/spigot/")
 
+task setupWorkspace(dependsOn: ['buildSpigot']) {
+}
+
 task buildSpigot(type: JavaExec) {
-    if (hasBukkit() && hasSpigot()) {
+    if (hasSpigot()) {
         enabled = false;
         dependsOn = [];
     } else {
-      dependsOn = ['cleanSpigotBuild', 'downloadBuildTool']
+        dependsOn = ['cleanSpigotBuild', 'downloadBuildTool']
     }
     main = '-jar'
     args new File(spigotBuildDir, "BuildTools.jar").getAbsolutePath(), "--rev", project.property("apibuildtoolversion")
@@ -127,12 +139,6 @@ task downloadBuildTool(type: Download) {
 
 task cleanSpigotBuild() {
     spigotBuildDir.deleteDir()
-}
-
-def hasBukkit() {
-    def groupId = "org.bukkit"
-    def version = project.property("apiversion")
-    return hasArtifact(groupId, "bukkit", version) && hasArtifact(groupId, "craftbukkit", version)
 }
 
 def hasSpigot() {

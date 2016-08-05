@@ -1,8 +1,6 @@
 empty-spigot-plugin
 -------------------------------------------------
-This is an empty Spigot plugin. It uses Gradle to make sure the correct version
-of Spigot is installed and available. It can also host a local testserver with
-the plugin automatically built and installed.
+This is an empty Spigot plugin. It uses Gradle to make sure the correct version of Spigot is installed and available. It can also host a local testserver with the plugin automatically built and installed.
 
 # Usage
 
@@ -12,17 +10,15 @@ the plugin automatically built and installed.
   - Windows:  
     - Open CMD
     - Navigate into cloned repository
-    - Execute `gradlew.bat setupWorksapce`
     - Execute `gradlew.bat idea`
     - Execute `gradlew.bat build`
   - Linux/OSX
     - Open Terminal
     - Navigate into cloned repository
-    - Execute `./gradlew setupWorksapce`
     - Execute `./gradlew idea`
     - Execute `./gradlew build`
-- Open the cloned repository in IntelliJ and beginn to work!
-- Make sure to click "Link Gradle Project" in the right upper corner after the first start to have Gradle working properly
+- Open the project in IntelliJ by opening the created `.ipr` file. Otherwise the run configurations will not be in place for you!
+- Make sure to click "Link Gradle Project" in the right upper corner after the first start to have Gradle working properly. Check the IntelliJ Event Log if you missed it.
 
 ## Eclipse (You can try to use it, but IDEA is better...)
 - Clone repository
@@ -30,13 +26,11 @@ the plugin automatically built and installed.
   - Windows:  
     - Open CMD
     - Navigate into cloned repository
-    - Execute `gradlew.bat setupWorksapce`
     - Execute `gradlew.bat eclipse`
     - Execute `gradlew.bat build`
   - Linux/OSX
     - Open Terminal
     - Navigate into cloned repository
-    - Execute `./gradlew setupWorksapce`
     - Execute `./gradlew eclipse`
     - Execute `./gradlew build`
 - Open Eclipse
@@ -57,25 +51,29 @@ During setup some run configurations will be created for you:
 - **Start Dev Server**  
   Starts the local testserver in the IDE. You can also debug the plugin by starting it with the little green bug next to the green play button. You can then set breakpoints and perform HotSwap (Shift+F9) during development so you don't have to rebuild the plugin and reload the server all the time.
 
-## Changing Bukkit/Spigot version and plugin name
-You can change bukkit version in the `gradle.properties` file.
+## Changing spigot version or plugin name/version
+You can change the Spigot version in the `gradle.properties` file. Next time you compile the plugin, the correct version of Spigot will be fetched and built for you.
 ```
-apitype=SPIGOT // Type of the API to use: "SPIGOT" or "BUKKIT"
-apiversion=1.8.7-R0.1-SNAPSHOT // Version of the dependency
-apibuildtoolversion=1.8.7 // Version of the dependency in the Spigot BuildTool (Normally Minecraft version number)
+apiversion=1.10.2-R0.1-SNAPSHOT // Version of the dependency
+apibuildtoolversion=1.10.2 // Version of the dependency in the Spigot BuildTool (Normally Minecraft version number)
 ```
 
-If you want to change the name of the plugin you need to check the following files:
+If you want to change the name or version of the plugin you need to check the following files:
 - `gradle.properties`
 - `settings.gradle`
 - `plugin.yml`
 
 This should be pretty straight forward...
 
+Make sure to run the `clean/` task so that old artifacts don't interfere with the new version.
+
+## Keeping server configurations
+If you want to keep server configurations after a clean you can put any files into to `config/testserver/` directory. The files will automaticall be copied to the `testserver/` directory for you
+
 # License
 The MIT License (MIT)
 
-Copyright (c) 2015 Rene Hollander
+Copyright (c) 2016 Rene Hollander and Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,5 +1,5 @@
 name: empty-spigot-plugin
-version: @version@-@apitype@-@apiversion@
+version: @version@-@apiversion@
 description: An empty example plugin for Spigot with Gradle
 authors: [Rene Hollander]
 website: https://github.com/ReneHollander/empty-spigot-plugin
